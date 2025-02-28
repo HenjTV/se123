@@ -1,0 +1,269 @@
+{% extends "base.html" %}
+{% block title %}Выбор персонажа{% endblock %}
+{% block content %}
+    <div class="content-wrapper">
+        <h1>SELECT CHARACTER</h1>
+        <div class="character-list">
+            {% for key, value in characters.items() %}
+                <div class="character-item unselected" 
+                     data-character="{{ key }}" 
+                     data-avatar="{{ value.avatarImage }}" 
+                     data-avatar-no-bg="{{ value.avatarImageNoBg }}" 
+                     data-gr1="{{ value.gr1 }}" 
+                     data-gr2="{{ value.gr2 }}" 
+                     data-gr3="{{ value.gr3 }}" 
+                     data-name="{{ value.name }}" 
+                     data-description="{{ value.description }}"
+                     data-sound="{{ value.sound }}"> <!-- Добавлено поле для звука -->
+                    <div class="character-gradient" style="background: linear-gradient(to bottom, {{ value.gr1 }}, {{ value.gr2 }}, {{ value.gr3 }});">
+                        <img src="{{ value.avatarImageNoBg }}" alt="{{ value.name }}" class="character-image">
+                    </div>
+                    <div class="character-info">
+                        <h3>{{ value.name }}</h3>
+                        <p>{{ value.description }}</p>
+                    </div>
+                    <button class="select">SELECT</button>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Панель поиска с анимацией загрузки -->
+    <div class="queue-panel" id="queue-panel" style="display: none;">
+        <div class="loading-spinner"></div>
+        <button class="cancel-queue" onclick="cancelQueue()">CANCEL</button>
+    </div>
+
+    <!-- Оверлей для затемнения -->
+    <div class="overlay" id="overlay" style="display: none;"></div>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+    <script>
+        const socket = io();
+        let currentAudio = null; // Переменная для хранения текущего воспроизводимого звука
+
+        socket.on("custom_event", function(data) {
+            console.log("Получено сообщение:", data.message);
+            if (data.player_data) console.log("Данные об игроке:", data.player_data);
+            if (data.room_data) console.log("Данные о комнате:", data.room_data);
+        });
+
+        socket.on("round_update", function(data) {
+            console.log("Получено сообщение:", data.message);
+        });
+
+        document.addEventListener('DOMContentLoaded', (event) => {
+            const username = "{{ user.id }}";
+            if (!username) {
+                console.error("Имя пользователя не найдено!");
+                return;
+            }
+
+            // Обработка выбора персонажа
+            document.querySelectorAll('.character-item').forEach(item => {
+                item.addEventListener('click', (e) => {
+                    const character = item.dataset.character;
+                    const avatarImage = item.dataset.avatar;
+                    const avatarImageNoBg = item.dataset.avatarNoBg;
+                    const sound = item.dataset.sound; // Получаем путь к звуку
+                    const image = item.querySelector('.character-image');
+                    const playButton = item.querySelector('.select');
+                    const info = item.querySelector('.character-info');
+
+                    // Останавливаем текущий звук, если он есть
+                    if (currentAudio) {
+                        currentAudio.pause();
+                        currentAudio.currentTime = 0; // Сбрасываем на начало
+                        currentAudio = null;
+                    }
+
+                    if (item.classList.contains('selected')) {
+                        item.classList.remove('selected');
+                        item.classList.add('unselected');
+                        image.src = avatarImageNoBg;
+                        image.style.transform = '';
+                        playButton.style.opacity = '0';
+                        playButton.style.display = 'none';
+                        info.style.transform = 'translateY(100%)';
+                        item.querySelector('.character-gradient').style.background = `linear-gradient(to bottom, ${item.dataset.gr1}, ${item.dataset.gr2}, ${item.dataset.gr3})`;
+                        return;
+                    }
+
+                    // Снимаем выбор с других персонажей
+                    document.querySelectorAll('.character-item').forEach(el => {
+                        el.classList.remove('selected');
+                        el.classList.add('unselected');
+                        const elImage = el.querySelector('.character-image');
+                        elImage.src = el.dataset.avatarNoBg;
+                        el.querySelector('.character-gradient').style.background = `linear-gradient(to bottom, ${el.dataset.gr1}, ${el.dataset.gr2}, ${el.dataset.gr3})`;
+                        const elButton = el.querySelector('.select');
+                        elButton.style.opacity = '0';
+                        elButton.style.display = 'none';
+                        el.querySelector('.character-info').style.transform = 'translateY(100%)';
+                    });
+
+                    item.classList.add('selected');
+                    item.classList.remove('unselected');
+                    setTimeout(() => {
+                        image.src = avatarImage;
+                        image.style.transform = '';
+                        info.style.transform = 'translateY(0)';
+                        playButton.style.display = 'block';
+                        setTimeout(() => {
+                            playButton.style.opacity = '1';
+                        }, 10);
+                    }, 300);
+
+                    // Воспроизводим звук, если он есть
+                    if (sound) {
+                        currentAudio = new Audio(sound);
+                        currentAudio.play().catch(error => {
+                            console.log(`Ошибка воспроизведения звука для ${character}: ${error}`);
+                        });
+                    } else {
+                        console.log(`Звук для ${character} не найден`);
+                    }
+
+                    socket.emit('select_character', { 
+                        character: character,
+                        username: username 
+                    });
+                });
+            });
+
+            // Начало поиска очереди
+            document.querySelectorAll('.select').forEach(button => {
+                button.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const data = {
+                        username: username,
+                        character: document.querySelector('.character-item.selected').dataset.character
+                    };
+                    console.log('Отправка данных на сервер для начала поиска игры:', data);
+                    socket.emit('startQue', data);
+                    console.log('Вы начали поиск игры отправив сообщение');
+                    
+                    // Показываем панель поиска и блокируем интерфейс
+                    showQueuePanel();
+
+                    // Останавливаем звук при начале поиска
+                    if (currentAudio) {
+                        currentAudio.pause();
+                        currentAudio.currentTime = 0;
+                        currentAudio = null;
+                    }
+                });
+            });
+        });
+
+        // Функция для показа панели поиска
+        function showQueuePanel() {
+            const queuePanel = document.getElementById('queue-panel');
+            const overlay = document.getElementById('overlay');
+            const contentWrapper = document.querySelector('.content-wrapper');
+
+            queuePanel.style.display = 'flex';
+            overlay.style.display = 'block';
+            contentWrapper.classList.add('blurred');
+        }
+
+        // Функция для скрытия панели поиска и разблокировки интерфейса
+        function hideQueuePanel() {
+            const queuePanel = document.getElementById('queue-panel');
+            const overlay = document.getElementById('overlay');
+            const contentWrapper = document.querySelector('.content-wrapper');
+
+            queuePanel.style.display = 'none';
+            overlay.style.display = 'none';
+            contentWrapper.classList.remove('blurred');
+        }
+
+        // Функция отмены поиска
+        function cancelQueue() {
+            const data = { username: "{{ user.id }}" };
+            socket.emit('stop_que', data);
+            hideQueuePanel();
+            console.log('Поиск игры отменен');
+        }
+    </script>
+
+    <style>
+        /* Стили для панели поиска */
+        .queue-panel {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(42, 0, 0, 0.9);
+            border: 2px solid #4a0000;
+            border-radius: 10px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            box-shadow: 0 0 15px rgba(255, 0, 0, 0.3);
+        }
+
+        /* Анимация загрузки */
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #4a0000;
+            border-top: 4px solid #ff3333;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Кнопка отмены */
+        .cancel-queue {
+            font: 16px 'CustomFont', sans-serif;
+            padding: 10px 20px;
+            background: linear-gradient(145deg, #2a2a2a, #1a1a1a);
+            border: 2px solid #4a0000;
+            color: #b30000;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: all 0.3s ease;
+            box-shadow: 0 0 8px rgba(255, 0, 0, 0.2), inset 0 0 5px rgba(0, 0, 0, 0.8);
+            text-shadow: 1px 1px 2px #000;
+        }
+
+        .cancel-queue:hover {
+            background: linear-gradient(145deg, #3a1a1a, #2a0a0a);
+            color: #ff3333;
+            box-shadow: 0 0 12px rgba(255, 0, 0, 0.4);
+        }
+
+        /* Оверлей */
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 998;
+        }
+
+        /* Блюр для контента */
+        .content-wrapper.blurred {
+            filter: blur(5px);
+            pointer-events: none;
+        }
+
+        /* Основной контент */
+        .content-wrapper {
+            position: relative;
+            z-index: 1;
+        }
+    </style>
+{% endblock %}

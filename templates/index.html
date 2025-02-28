@@ -1,0 +1,49 @@
+<!-- templates/index.html -->
+{% extends "base.html" %}
+
+{% block title %}Главная страница{% endblock %}
+
+{% block content %}
+    <div style="padding: 20px; text-align: center;">
+        <h1>WELLCOME TO THE FIRST PAGE</h1>
+        <p></p>
+    </div>
+
+    <script>
+        const socket = io();
+        socket.on("custom_event", function(data) {
+            console.log("Получено сообщение:", data.message);
+        
+        if (data.player_data) {
+            console.log("Данные об игроке:", data.player_data);
+        }
+
+        if (data.room_data) {
+            console.log("Данные о комнате:", data.room_data);
+        }
+        });
+
+        socket.on("round_update", function(data) {
+            console.log("Получено сообщение:", data.message);
+        });
+        document.addEventListener("DOMContentLoaded", function () {
+            fetch("/user_status")
+                .then(response => response.json())
+                .then(data => {
+                    let navLinks = document.getElementById("nav-links");
+
+                    if (data.authenticated && data.user_status === 'playing') {
+                        navLinks.innerHTML += `
+                            <button class="nav-button" onclick="navigateTo(document.getElementById('game-url').value)">RETURN TO GAME</button>
+                        `;
+                    }
+                });
+
+            // Обработка события redirect_to_game
+            socket.on('redirect_to_game', function(data) {
+                console.log(`Перенаправление на страницу игры: ${data.url}`);
+                window.location.href = data.url; // Перенаправляем пользователя на страницу /game
+            });
+        });
+    </script>
+{% endblock %}

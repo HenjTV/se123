@@ -1,0 +1,135 @@
+<!-- templates/base.html -->
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Мой сайт{% endblock %}</title>
+    <!-- Подключение socketIO -->
+    <script src="https://cdn.socket.io/4.6.0/socket.io.min.js"></script>
+    <!-- Подключение стилей -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="header">
+        <div id="nav-links"></div> <!-- Блок для кнопок навигации -->
+        <div id="auth-container">
+            <!-- Здесь будет динамически подставляться информация о пользователе -->
+        </div>
+    </div>
+
+    <!-- Скрытые поля для хранения URL-адресов -->
+    <input type="hidden" id="main-url" value="{{ url_for('index') }}">
+    <input type="hidden" id="characters-url" value="{{ url_for('characterlist') }}">
+    <input type="hidden" id="game-url" value="{{ url_for('game') }}">
+
+    <!-- Модальное окно авторизации -->
+    <div id="auth-modal" class="auth-modal">
+        <div class="auth-container">
+            <h2>AUTHORIZATION</h2>
+            <label>LOGIN:</label>
+            <input type="text" id="username">
+            <label>PASSWORD:</label>
+            <input type="password" id="password">
+            <button class="nav-button" onclick="handleAuth('login')">LOGIN</button>
+            <button class="nav-button" onclick="handleAuth('register')">REGISTER</button>
+            <button class="nav-button" onclick="closeAuthModal()">CLOSE</button>
+        </div>  
+    </div>
+
+    <!-- Основное содержимое страницы -->
+    <main>
+        {% block content %}
+        <!-- Содержимое будет подставлено из дочерних шаблонов -->
+        {% endblock %}
+    </main>
+
+    <script>
+        socket.on('redirect_to_game', function(data) {
+            console.log('Перенаправление на страницу игры:', data.url);
+        window.location.href = data.url; // Перенаправляем пользователя на страницу /game
+        });
+
+
+        document.addEventListener("DOMContentLoaded", function () {
+            fetch("/user_status")
+                .then(response => response.json())
+                .then(data => {
+                    let authContainer = document.getElementById("auth-container");
+                    let navLinks = document.getElementById("nav-links");
+
+                    if (data.authenticated) {
+                        // Если пользователь авторизован
+                        authContainer.innerHTML = `
+                            <div class="user-info-container">
+                                <span class="user-info">${data.username}</span>
+                                <button class="nav-button" onclick="logout()">LOGOUT</button>
+                            </div>
+                        `;
+                        navLinks.innerHTML = `
+                            <button class="nav-button" onclick="navigateTo(document.getElementById('main-url').value)">MAIN</button>
+                            <button class="nav-button" onclick="navigateTo(document.getElementById('characters-url').value)">CHARACTERS</button>
+                            <button class="nav-button" onclick="navigateTo(document.getElementById('game-url').value)">GAME</button>
+                        `;
+
+                    } else {
+                        // Если пользователь не авторизован
+                        authContainer.innerHTML = `
+                            <button class="nav-button" onclick="openAuthModal()">LOGIN</button>
+                        `;
+                        navLinks.innerHTML = ''; // Скрываем ссылки
+                    }
+                });
+
+            socket.on('ingame', function (data) {
+                console.log('Получено событие game_started:', data);
+                if (data && data.room_id) {
+                    // Перенаправляем пользователя на страницу игры с передачей room_id
+                } else {
+                    console.error('Некорректные данные в событии game_started:', data);
+                }
+            });
+            socket.on("base", function(data) {
+                console.log("Получено сообщение в  BASE");
+            });
+        });
+
+        // Функция для навигации
+        function navigateTo(url) {
+            window.location.href = url;
+        }
+
+        // Открытие модального окна авторизации
+        function openAuthModal() {
+            document.getElementById("auth-modal").style.display = "block";
+        }
+
+        // Закрытие модального окна авторизации
+        function closeAuthModal() {
+            document.getElementById("auth-modal").style.display = "none";
+        }
+
+        // Обработка авторизации (логин или регистрация)
+        function handleAuth(action) {
+            let username = document.getElementById("username").value;
+            let password = document.getElementById("password").value;
+
+            fetch(`/${action}`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ username, password })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) alert(data.error);
+                if (data.success) location.reload();
+            });
+        }
+
+        // Выход из системы
+        function logout() {
+            fetch("/logout").then(() => location.reload());
+        }
+    </script>
+</body>
+</html>

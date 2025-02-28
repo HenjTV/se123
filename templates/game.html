@@ -1,0 +1,992 @@
+{% extends "base.html" %}
+{% block title %}Game{% endblock %}
+{% block content %}
+    <div class="game-container">
+        <div class="prepare-avg-panel" id="prepare-avg-panel" style="display: none; top: 30%; z-index: 11;">
+            <div class="prepare-panel-content">
+                <div class="prepare-player-info left-player">
+                    <img id="local-player-avg-avatar" class="prepare-avatar" src="" alt="Player Avatar">
+                    <div class="prepare-stats player-stats">
+                        <div class="prepare-name" id="local-player-avg-name"></div>
+                        <div class="prepare-rating" id="local-player-avg-rating"></div>
+                        <div class="prepare-character" id="local-player-avg-character"></div>
+                    </div>
+                </div>
+                <div class="prepare-timer-wrapper">
+                    <div class="prepare-timer" id="prepare-avg-timer">10</div>
+                    <div class="prepare-timer-bar">
+                        <div class="prepare-timer-progress" id="prepare-avg-timer-progress"></div>
+                    </div>
+                </div>
+                <div class="prepare-player-info right-player">
+                    <div class="prepare-stats opponent-stats">
+                        <div class="prepare-name" id="opponent-avg-name"></div>
+                        <div class="prepare-rating" id="opponent-avg-rating"></div>
+                        <div class="prepare-character" id="opponent-avg-character"></div>
+                    </div>
+                    <img id="opponent-avg-avatar" class="prepare-avatar" src="" alt="Opponent Avatar">
+                </div>
+                <div class="prepare-choice-buttons">
+                    <button class="prepare-button bronze" onclick="selectTalent('bronze')">Bronze (0)</button>
+                    <button class="prepare-button silver" onclick="selectTalent('silver')">Silver (25)</button>
+                    <button class="prepare-button gold" onclick="selectTalent('gold')">Gold (50)</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="prepare-super-panel" id="prepare-super-panel" style="display: none; top: 70%; z-index: 10;">
+            <div class="prepare-panel-content">
+                <div class="prepare-timer-wrapper">
+                    <div class="prepare-timer" id="prepare-super-timer">10</div>
+                    <div class="prepare-timer-bar">
+                        <div class="prepare-timer-progress" id="prepare-super-timer-progress"></div>
+                    </div>
+                </div>
+                <div class="super-skill-buttons" id="super-skill-buttons"></div>
+            </div>
+        </div>
+
+        <div class="game-field" id="game-field" style="display: none;">
+            <div class="game-scene-wrapper">
+                <div class="game-scene-player-left">
+                    <div class="buff-container" id="local-player-buffs"></div>
+                    <img id="local-player-game-avatar" class="game-avatar" src="" alt="Player Avatar">
+                    <div class="game-scene-stats">
+                        <div class="game-scene-name" id="local-player-name">Player 1</div>
+                        <div class="game-scene-hp-bar">
+                            <div class="game-scene-hp" id="local-player-hp"></div>
+                            <span class="game-scene-hp-text" id="local-player-hp-text">100 / 100</span>
+                        </div>
+                        <div class="game-scene-resource-bar">
+                            <div class="game-scene-resource" id="local-player-resource"></div>
+                            <span class="game-scene-resource-text" id="local-player-resource-text">100 / 100</span>
+                        </div>
+                        <div class="debuff-container" id="local-player-debuffs"></div>
+                    </div>
+                </div>
+                <div class="game-scene-timer-wrapper">
+                    <div class="game-scene-timer" id="round-timer">Round 1</div>
+                    <div class="game-scene-timer-bar">
+                        <div class="game-scene-timer-progress" id="timer-progress"></div>
+                    </div>
+                </div>
+                <div class="game-scene-player-right">
+                    <div class="buff-container" id="opponent-buffs"></div>
+                    <div class="opponent-super-skill">
+                        <img id="opponent-super-icon" src="/static/image/default.png" alt="Opponent Super" class="super-action-icon">
+                        <div class="super-cooldown-overlay" id="opponent-super-cooldown-overlay"></div>
+                        <span class="super-cooldown-text" id="opponent-super-cooldown-text"></span>
+                    </div>
+                    <img id="opponent-game-avatar" class="game-avatar" src="" alt="Opponent Avatar">
+                    <div class="game-scene-stats">
+                        <div class="game-scene-name" id="opponent-name">Player 2</div>
+                        <div class="game-scene-hp-bar">
+                            <div class="game-scene-hp" id="opponent-hp"></div>
+                            <span class="game-scene-hp-text" id="opponent-hp-text">100 / 100</span>
+                        </div>
+                        <div class="game-scene-resource-bar">
+                            <div class="game-scene-resource" id="opponent-resource"></div>
+                            <span class="game-scene-resource-text" id="opponent-resource-text">100 / 100</span>
+                        </div>
+                        <div class="debuff-container" id="opponent-debuffs"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="game-scene-log">
+                <div class="game-scene-log-content"></div>
+            </div>
+            <div class="game-scene-action-panel">
+                <div class="game-scene-powerbar-container">
+                    <label for="powerbar">Power:</label>
+                    <input type="range" id="powerbar" min="0" max="100" value="0" oninput="updatePowerBarValue()" />
+                    <span id="powerbar-value">0</span>
+                </div>
+                <div class="game-scene-action-buttons">
+                    <div class="action-button-wrapper">
+                        <div class="skill-container" id="attack-skill">
+                            <img id="attack-skill-icon" src="" alt="" class="skill-icon" style="display: none;">
+                            <span class="skill-cooldown" id="attack-skill-cooldown"></span>
+                        </div>
+                        <button id="attack-btn" onclick="sendAction('Attack')" class="base-action">
+                            <img id="attack-icon" src="/static/image/defaultattack.png" alt="Attack" class="action-icon">Attack
+                        </button>
+                        <span class="base-cooldown" id="attack-base-cooldown"></span>
+                    </div>
+                    <div class="action-button-wrapper">
+                        <div class="skill-container" id="defence-skill">
+                            <img id="defence-skill-icon" src="" alt="" class="skill-icon" style="display: none;">
+                            <span class="skill-cooldown" id="defence-skill-cooldown"></span>
+                        </div>
+                        <button id="defence-btn" onclick="sendAction('Defence')" class="base-action">
+                            <img id="defence-icon" src="/static/image/defaultdefence.png" alt="Defence" class="action-icon">Defence
+                        </button>
+                        <span class="base-cooldown" id="defence-base-cooldown"></span>
+                    </div>
+                    <div class="action-button-wrapper">
+                        <div class="skill-container" id="parry-skill">
+                            <img id="parry-skill-icon" src="" alt="" class="skill-icon" style="display: none;">
+                            <span class="skill-cooldown" id="parry-skill-cooldown"></span>
+                        </div>
+                        <button id="parry-btn" onclick="sendAction('Parry')" class="base-action">
+                            <img id="parry-icon" src="/static/image/defaultparry.png" alt="Parry" class="action-icon">Parry
+                        </button>
+                        <span class="base-cooldown" id="parry-base-cooldown"></span>
+                    </div>
+                    <div class="action-button-wrapper">
+                        <div class="skill-container" id="kick-skill">
+                            <img id="kick-skill-icon" src="" alt="" class="skill-icon" style="display: none;">
+                            <span class="skill-cooldown" id="kick-skill-cooldown"></span>
+                        </div>
+                        <button id="kick-btn" onclick="sendAction('Kick')" class="base-action">
+                            <img id="kick-icon" src="/static/image/defaultkick.png" alt="Kick" class="action-icon">Kick
+                        </button>
+                        <span class="base-cooldown" id="kick-base-cooldown"></span>
+                    </div>
+                    <div class="action-button-wrapper">
+                        <div class="skill-container" id="heal-skill">
+                            <img id="heal-skill-icon" src="" alt="" class="skill-icon" style="display: none;">
+                            <span class="skill-cooldown" id="heal-skill-cooldown"></span>
+                        </div>
+                        <button id="heal-btn" onclick="sendAction('Heal')" class="base-action">
+                            <img id="heal-icon" src="/static/image/defaultheal.png" alt="Heal" class="action-icon">Heal
+                        </button>
+                        <span class="base-cooldown" id="heal-base-cooldown"></span>
+                    </div>
+                </div>
+                <button class="game-scene-exit-button" onclick="leaveGame()">Leave</button>
+            </div>
+        </div>
+        <div class="game-scene-not-in-game" id="not-in-game" style="display: flex;">
+            <h1>You are not in game</h1>
+        </div>
+        <div class="game-over-screen" id="game-over-screen" style="display: none;">
+            <div class="game-over-content">
+                <h1 class="game-over-title">GAME OVER</h1>
+                <h2 id="game-result">YOU WIN</h2>
+                <p id="new-rating">NEW RATING: 1500</p>
+            </div>
+        </div>
+        <div id="tooltip" class="tooltip"></div>
+    </div>
+
+    <style>
+        .action-button-wrapper {
+            position: relative;
+            display: inline-block;
+            width: 120px; /* Увеличил ширину для красоты и читаемости */
+            height: 60px; /* Полная высота: 20px талант + 40px кнопка */
+            margin: 0 0px; /* Расстояние между кнопками */
+        }
+
+        .skill-container {
+            position: absolute;
+            top: -20px; /* Талант парит над кнопкой */
+            left: 50%;
+            transform: translateX(-50%);
+            width: 20px;
+            height: 20px;
+            z-index: 2;
+        }
+
+        .skill-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%; /* Круглые иконки, как у тебя в дизайне */
+            object-fit: cover;
+            border: 1px solid #4a0000;
+            box-shadow: 0 0 5px rgba(255, 0, 0, 0.2);
+            transition: opacity 0.3s ease;
+        }
+
+        .skill-icon.on-cooldown {
+            opacity: 0.5; /* Затемнение, когда талант на кулдауне */
+        }
+
+        .skill-cooldown {
+            position: absolute;
+            top: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 12px;
+            color: #ff3333;
+            text-shadow: 1px 1px 2px #000;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 2px 4px;
+            border-radius: 50%;
+            display: none;
+        }
+
+        .base-action {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 100px; /* Увеличил высоту для соответствия твоим стилям */
+            padding: 5px 10px;
+            font-size: 16px;
+            font-family: 'CustomFont', sans-serif;
+            background: linear-gradient(145deg, #2a2a2a, #1a1a1a);
+            color: #b30000;
+            border: 2px solid #4a0000;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 0 8px rgba(255, 0, 0, 0.2), inset 0 0 5px rgba(0, 0, 0, 0.8);
+            text-transform: uppercase;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-shadow: 1px 1px 2px #000;
+        }
+
+        .base-action:hover:not(:disabled) {
+            background: linear-gradient(145deg, #3a1a1a, #2a0a0a);
+            color: #ff3333;
+            box-shadow: 0 0 12px rgba(255, 0, 0, 0.4), inset 0 0 5px rgba(0, 0, 0, 0.8);
+            border-color: #800000;
+        }
+
+        .base-action:disabled {
+            background: linear-gradient(145deg, #1a1a1a, #0a0a0a);
+            color: #666;
+            border-color: #333;
+            opacity: 0.6;
+            cursor: not-allowed;
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.8);
+        }
+
+        .base-action.selected {
+            border: 2px solid #00ff00;
+            background-color: #e0ffe0;
+        }
+
+        .base-cooldown {
+            position: absolute;
+            bottom: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 12px;
+            color: #ff3333;
+            text-shadow: 1px 1px 2px #000;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 2px 4px;
+            border-radius: 50%;
+            display: none;
+        }
+
+        .game-scene-action-buttons {
+            display: flex;
+            gap: 0px;
+            flex-wrap: nowrap;
+            justify-content: center;
+            padding: 10px 0;
+        }
+
+        .action-icon {
+            width: 50px;
+            height: 50px;
+            vertical-align: middle;
+            margin-right: 5px;
+        }
+    </style>
+
+    <script type="text/javascript">
+        const socket = io();
+        let timerInterval = null;
+        let isPlayer1 = true;
+        let localMaxHP = 100;
+        let localMaxResource = 100;
+        let opponentMaxHP = 100;
+        let opponentMaxResource = 100;
+        let currentResource = 0;
+        let lastSelectedButton = null;
+        let prepareAvgTimerInterval = null;
+        let prepareSuperTimerInterval = null;
+        let lastSelectedTalent = null;
+        let lastSelectedSuper = null;
+        let prepareAvgData = null;
+        let prepareSuperData = null;
+        let lastUIData = null;
+        let lastLocalHP = null;
+        let lastLocalResource = null;
+        let lastOpponentHP = null;
+        let lastOpponentResource = null;
+        let selectedSkills = [];
+        let isPreparingAvg = false;
+        let isPreparingSuper = false;
+
+        const skillImages = {
+            1: '/static/image/superskill/noctis_curse.jpg',
+            2: '/static/image/superskill/noctis_healing_decay.jpg',
+            3: '/static/image/superskill/noctis_parry_mastery.jpg',
+            4: '/static/image/superskill/lightforge_blessing.jpg',
+            5: '/static/image/superskill/blood_pact.jpg'  // Добавляем иконку для Blood Pact
+        };
+
+        const skillDescriptions = {
+            1: "Noctis Curse\nEnhances Attack: Deals 3% of enemy's current HP as true damage each round for 5 rounds\nStacks: Yes (max 5)\nRefreshes: Yes\nCooldown: 3 rounds",
+            2: "Healing Decay\nEnhances Kick: Reduces enemy's healing by 10% per stack for 10 rounds\nStacks: Yes\nRefreshes: Yes\nCooldown: 3 rounds",
+            3: "Parry Mastery\nEnhances Parry: Reduces enemy's non-true damage by 10% for 3 rounds\nStacks: No\nRefreshes: Yes\nCooldown: 3 rounds",
+            4: "Lightforge Blessing\nEnhances Heal: Restores 10% more health and buffs next Attack by 75% for 3 rounds\nStacks: No\nRefreshes: No\nCooldown: 5 rounds",
+            5: "Blood Pact\nEnhances Heal: Restores 30 HP (+15 per level) and buffs damage by 1.8% to 5% per stack (5 stacks max)\nSelf-Damage: 5% HP per stack per round\nDuration: 5 rounds\nStacks: Yes\nRefreshes: Yes\nCooldown: None"
+        };
+        const debuffDescriptions = {
+            "NoctisCurseDebuff": "Deals 3% of your current HP as true damage per stack each round (5 rounds).",
+            "NoctisHealingReductionDebuff": "Reduces your healing by 10% per stack (10 rounds).",
+            "NoctisDamageReductionDebuff": "Reduces your non-true damage by 10% for 3 rounds."
+        };
+        const buffDescriptions = {
+            "LightforgeBlessingBuff": "Increases next Attack damage by 75% (3 rounds, consumed on Attack)."
+        };
+
+        const buffImages = {
+            "LightforgeBlessingBuff": skillImages[4],  // Lightforge Blessing
+            "BloodPactBuff": skillImages[5]            // Blood Pact
+        };
+
+        document.addEventListener("DOMContentLoaded", function () {
+            socket.emit('joined_game', { username: '{{ username }}' });
+
+            socket.on('connect', function () {
+                console.log('Connected to server, requesting UI data for {{ username }}');
+                socket.emit('request_ui_data', { username: '{{ username }}' });
+            });
+
+            socket.on('prepare_avg', function (data) {
+                const prepareAvgPanel = document.getElementById('prepare-avg-panel');
+                const gameField = document.getElementById('game-field');
+                prepareAvgPanel.style.display = 'flex';
+                gameField.classList.add('blurred');
+                
+                prepareAvgData = data || prepareAvgData;
+                updatePrepareAvgPanel(prepareAvgData);
+                isPreparingAvg = true;
+
+                let timeLeft = 10;
+                document.getElementById('prepare-avg-timer').textContent = timeLeft;
+                const prepareProgress = document.getElementById('prepare-avg-timer-progress');
+                prepareProgress.style.width = '100%';
+                
+                const startTime = Date.now();
+                clearInterval(prepareAvgTimerInterval);
+                prepareAvgTimerInterval = setInterval(() => {
+                    const elapsed = Date.now() - startTime;
+                    const remaining = Math.max(0, 10000 - elapsed);
+                    const percentage = (remaining / 10000) * 100;
+                    prepareProgress.style.width = `${percentage}%`;
+                    timeLeft = Math.ceil(remaining / 1000);
+                    document.getElementById('prepare-avg-timer').textContent = timeLeft;
+
+                    if (remaining <= 0) {
+                        clearInterval(prepareAvgTimerInterval);
+                        prepareAvgPanel.style.display = 'none';
+                        if (!isPreparingSuper) gameField.classList.remove('blurred');
+                        isPreparingAvg = false;
+                    }
+                }, 50);
+            });
+
+            socket.on('prepare_skill', function (data) {
+                const prepareSuperPanel = document.getElementById('prepare-super-panel');
+                const gameField = document.getElementById('game-field');
+                prepareSuperPanel.style.display = 'flex';
+                gameField.classList.add('blurred');
+                
+                prepareSuperData = data || prepareSuperData;
+                updatePrepareSuperPanel(prepareSuperData);
+                isPreparingSuper = true;
+
+                let timeLeft = 10;
+                document.getElementById('prepare-super-timer').textContent = timeLeft;
+                const prepareProgress = document.getElementById('prepare-super-timer-progress');
+                prepareProgress.style.width = '100%';
+                
+                const startTime = Date.now();
+                clearInterval(prepareSuperTimerInterval);
+                prepareSuperTimerInterval = setInterval(() => {
+                    const elapsed = Date.now() - startTime;
+                    const remaining = Math.max(0, 10000 - elapsed);
+                    const percentage = (remaining / 10000) * 100;
+                    prepareProgress.style.width = `${percentage}%`;
+                    timeLeft = Math.ceil(remaining / 1000);
+                    document.getElementById('prepare-super-timer').textContent = timeLeft;
+
+                    if (remaining <= 0) {
+                        clearInterval(prepareSuperTimerInterval);
+                        prepareSuperPanel.style.display = 'none';
+                        if (!isPreparingAvg) gameField.classList.remove('blurred');
+                        isPreparingSuper = false;
+                        finalizeSuperAbilitySelection();
+                    }
+                }, 50);
+            });
+
+            socket.on('round_result', function (data) {
+                const prepareAvgPanel = document.getElementById('prepare-avg-panel');
+                const prepareSuperPanel = document.getElementById('prepare-super-panel');
+                const gameField = document.getElementById('game-field');
+                if (data.round === 1) {
+                    clearInterval(prepareAvgTimerInterval);
+                    clearInterval(prepareSuperTimerInterval);
+                    prepareAvgPanel.style.display = 'none';
+                    prepareSuperPanel.style.display = 'none';
+                    gameField.classList.remove('blurred');
+                    isPreparingAvg = false;
+                    isPreparingSuper = false;
+                }
+
+                document.getElementById('round-timer').textContent = `Round ${data.round}`;
+                const logContent = document.querySelector('.game-scene-log-content');
+                const logEntry = document.createElement('div');
+                logEntry.textContent = `${data.player1_action} | ${data.player2_action}`;
+                logContent.appendChild(logEntry);
+                logContent.scrollTop = logContent.scrollHeight;
+
+                if (!lastUIData?.action_committed && lastSelectedButton) {
+                    lastSelectedButton.classList.remove('selected');
+                    lastSelectedButton = null;
+                }
+                updateActionButtons();
+            });
+
+            socket.on('game_over', function (data) {
+                const gameField = document.getElementById('game-field');
+                const notInGame = document.getElementById('not-in-game');
+                const gameOverScreen = document.getElementById('game-over-screen');
+                const gameResult = document.getElementById('game-result');
+                const newRating = document.getElementById('new-rating');
+
+                gameField.style.display = 'none';
+                notInGame.style.display = 'none';
+                gameOverScreen.style.display = 'flex';
+
+                const isWinner = data.winner === '{{ username }}';
+                const isDraw = !data.winner;
+                gameResult.textContent = isWinner ? 'YOU WIN' : (isDraw ? 'DRAW' : 'YOU LOSE');
+                gameResult.style.color = isWinner ? '#00ff00' : (isDraw ? '#ffff00' : '#ff0000');
+                newRating.textContent = `NEW RATING: ${data.rating || 1500}`;
+
+                setTimeout(() => {
+                    window.location.href = '/';
+                }, 5000);
+            });
+
+            socket.on('update_ui', function (data) {
+                lastUIData = data;
+                updateUI(data);
+            });
+
+            socket.on('skill_selected', function (data) {
+                console.log(`Super skill selected for ${data.username}: ${data.skill_id}`);
+            });
+
+            socket.on('error', function (data) {
+                console.error('Error from server:', data.message);
+            });
+
+            document.addEventListener('mousemove', (e) => {
+                const tooltip = document.getElementById('tooltip');
+                if (tooltip.style.display === 'block') {
+                    tooltip.style.left = `${e.pageX + 5}px`;
+                    tooltip.style.top = `${e.pageY - tooltip.offsetHeight - 5}px`;
+                }
+            });
+
+            function adjustGameFieldScale() {
+                const gameField = document.getElementById('game-field');
+                if (!gameField) return;
+
+                const windowWidth = window.innerWidth;
+                const windowHeight = window.innerHeight;
+                const baseWidth = 1400;
+                const baseHeight = 700;
+                const scaleX = windowWidth / baseWidth;
+                const scaleY = windowHeight / baseHeight;
+                const scale = Math.min(scaleX, scaleY, 1);
+
+                gameField.style.transform = `scale(${scale})`;
+                gameField.style.transformOrigin = 'center center';
+
+                const scaledWidth = baseWidth * scale;
+                const scaledHeight = baseHeight * scale;
+                gameField.style.left = `${(windowWidth - scaledWidth) / 2}px`;
+                gameField.style.top = `${(windowHeight - scaledHeight) / 2}px`;
+            }
+            window.addEventListener('resize', adjustGameFieldScale);
+            adjustGameFieldScale();
+        });
+
+        function sendAction(action) {
+            const powerbar = document.getElementById('powerbar');
+            let powerbarValue = parseInt(powerbar.value);
+
+            powerbarValue = Math.max(0, Math.min(powerbarValue, currentResource));
+            powerbar.value = powerbarValue;
+            updatePowerBarValue();
+
+            socket.emit('player_action', { action: action, username: '{{ username }}', powerbarValue: powerbarValue });
+
+            if (lastSelectedButton) {
+                lastSelectedButton.classList.remove('selected');
+            }
+            const button = document.getElementById(`${action.toLowerCase()}-btn`);
+            if (button) {
+                button.classList.add('selected');
+                lastSelectedButton = button;
+            }
+
+            const actions = ["Attack", "Defence", "Parry", "Kick", "Heal"];
+            actions.forEach(act => {
+                const btn = document.getElementById(`${act.toLowerCase()}-btn`);
+                btn.disabled = true;
+                btn.classList.add('disabled-action');
+            });
+            powerbar.disabled = true;
+        }
+
+        function selectTalent(skill) {
+            const buttons = document.querySelectorAll('.prepare-choice-buttons button');
+            buttons.forEach(button => button.classList.remove('selected-skill'));
+
+            const selectedButton = document.querySelector(`.prepare-button.${skill}`);
+            selectedButton.classList.add('selected-skill');
+            lastSelectedTalent = selectedButton;
+
+            let avgValue;
+            switch (skill) {
+                case 'bronze': avgValue = 0; break;
+                case 'silver': avgValue = 25; break;
+                case 'gold': avgValue = 50; break;
+            }
+            socket.emit('set_avg', { username: '{{ username }}', avg: avgValue });
+            console.log(`Selected skill ${skill} with avg = ${avgValue}`);
+        }
+
+        function selectSuperAbility(superId) {
+            if (!isPreparingSuper) return;
+
+            const buttons = document.querySelectorAll('.super-skill-button');
+            buttons.forEach(button => button.classList.remove('selected-super'));
+
+            const selectedButton = document.querySelector(`.super-skill-button[data-id="${superId}"]`);
+            selectedButton.classList.add('selected-super');
+            lastSelectedSuper = selectedButton;
+
+            socket.emit('select_skill', { username: '{{ username }}', skill_id: superId });
+            console.log(`Selected super skill ${superId}`);
+        }
+
+        function finalizeSuperAbilitySelection() {
+            if (lastSelectedSuper) {
+                const superId = lastSelectedSuper.dataset.id;
+                const skills = prepareSuperData?.skills || lastUIData?.skills || {};
+                const skill = skills[superId];
+                const baseAction = skill.base_action;
+                updateActionButton(superId, baseAction);
+            }
+        }
+
+        function leaveGame() {
+            socket.emit('leave_game', { username: '{{ username }}' });
+        }
+
+        function updatePowerBarValue() {
+            const powerbar = document.getElementById('powerbar');
+            if (!powerbar) return;
+            let powerbarValue = parseInt(powerbar.value);
+
+            powerbarValue = Math.max(0, Math.min(powerbarValue, currentResource));
+            powerbar.value = powerbarValue;
+            document.getElementById('powerbar-value').textContent = powerbarValue;
+        }
+
+        function updatePrepareAvgPanel(data) {
+            const playerName = data.player || '{{ username }}';
+            const character = data.character || {};
+            const characterName = character.name || 'Unknown';
+            const rating = data.rating || 0;
+            const avatar = character.avatarImageNoBg || '/static/image/default.png';
+
+            document.getElementById('local-player-avg-name').textContent = playerName;
+            document.getElementById('local-player-avg-rating').textContent = `Rating: ${rating}`;
+            document.getElementById('local-player-avg-character').textContent = `Character: ${characterName}`;
+            const localAvatar = document.getElementById('local-player-avg-avatar');
+            localAvatar.src = avatar;
+            localAvatar.onerror = () => { localAvatar.src = '/static/image/default.png'; };
+
+            const opponent = data.opponent || {};
+            const opponentName = opponent.player || 'Waiting for opponent...';
+            const opponentCharacter = opponent.character || {};
+            const opponentCharacterName = opponentCharacter.name || 'Unknown';
+            const opponentRating = opponent.rating || 0;
+            const opponentAvatar = opponentCharacter.avatarImageNoBg || '/static/image/default.png';
+
+            document.getElementById('opponent-avg-name').textContent = opponentName;
+            document.getElementById('opponent-avg-rating').textContent = `Rating: ${opponentRating}`;
+            document.getElementById('opponent-avg-character').textContent = `Character: ${opponentCharacterName}`;
+            const oppAvatar = document.getElementById('opponent-avg-avatar');
+            oppAvatar.src = opponentAvatar;
+            oppAvatar.onerror = () => { oppAvatar.src = '/static/image/default.png'; };
+
+            const bronzeButton = document.querySelector('.prepare-button.bronze');
+            bronzeButton.classList.add('selected-skill');
+            lastSelectedTalent = bronzeButton;
+            socket.emit('set_avg', { username: '{{ username }}', avg: 0 });
+        }
+
+        function updatePrepareSuperPanel(data) {
+            const playerName = data.player || '{{ username }}';
+            const skills = data.skills || {};
+
+            const superButtonsContainer = document.getElementById('super-skill-buttons');
+            superButtonsContainer.innerHTML = '';
+            Object.entries(skills).forEach(([id, skill]) => {
+                const skillImage = skillImages[id] || '/static/image/default.png';
+                const skillName = skillDescriptions[id]?.split('\n')[0] || "Unknown";
+                const currentTalent = selectedSkills.find(t => t.id === id);
+                const level = currentTalent ? currentTalent.level : 0;
+                const displayName = `${skillName}[${level + 1}]`;
+                const button = document.createElement('button');
+                button.className = 'super-skill-button';
+                button.dataset.id = id;
+                button.innerHTML = `<img src="${skillImage}" alt="${displayName}" class="super-skill-icon"><span>${displayName}</span>`;
+                button.addEventListener('mouseover', (e) => showTooltip(e, skillDescriptions[id] || "Unknown skill"));
+                button.addEventListener('mouseout', hideTooltip);
+                button.onclick = () => selectSuperAbility(id);
+                superButtonsContainer.appendChild(button);
+            });
+        }
+
+        function updateActionButton(skillId, baseAction) {
+            const skills = lastUIData?.skills || {};
+            const skill = skills[skillId];
+            const level = selectedSkills.find(t => t.id === skillId)?.level || 1;
+            const skillName = skillDescriptions[skillId]?.split('\n')[0] || "Unknown";
+            const displayName = `${skillName}[${level}]`;
+            const skillIcon = document.getElementById(`${baseAction.toLowerCase()}-skill-icon`);
+            skillIcon.src = skillImages[skillId];
+            skillIcon.style.display = 'block';
+            console.log(`Updated ${baseAction} with skill ${displayName}`);
+        }
+
+        function updateUI(data) {
+            const gameField = document.getElementById('game-field');
+            const notInGame = document.getElementById('not-in-game');
+            if (!gameField || !notInGame) return;
+
+            gameField.style.display = 'block';
+            notInGame.style.display = 'none';
+
+            lastUIData = data;
+            isPlayer1 = data.is_player1;
+            document.getElementById('round-timer').textContent = `Round ${data.round_number}`;
+
+            const playerName = data.player || '{{ username }}';
+            const character = data.character || {};
+            const roundValues = data.round_values || {};
+            localMaxHP = character.maxHP || 100;
+            localMaxResource = character.resourceMaxValue || 100;
+            const currentHP = Math.floor(roundValues.currentHP ?? localMaxHP);
+            currentResource = Math.floor(roundValues.currentResource ?? (character.resourceBaseValue || 0));
+            const currentPowerBar = roundValues.currentPowerBar || 0;
+            const resourceType = (character.resourceType || 'Mana').toLowerCase();
+            const avatar = character.avatarImageNoBg || '/static/image/default.png';
+
+            if (lastLocalHP !== null && lastLocalHP !== currentHP) {
+                const diff = currentHP - lastLocalHP;
+                const localAvatar = document.getElementById('local-player-game-avatar');
+                if (localAvatar) createFloatingNumber(diff, diff < 0 ? '#ff0000' : '#00ff00', localAvatar);
+            }
+            if (lastLocalResource !== null && lastLocalResource !== currentResource) {
+                const diff = currentResource - lastLocalResource;
+                const localAvatar = document.getElementById('local-player-game-avatar');
+                if (localAvatar && diff > 0) {
+                    const resourceColors = {
+                        'mana': '#660099',
+                        'rage': '#994d00',
+                        'energy': '#999900',
+                        'focus': '#339966',
+                        'coldblood': '#ffffff'
+                    };
+                    createFloatingNumber(diff, resourceColors[resourceType] || '#660099', localAvatar);
+                }
+            }
+            lastLocalHP = currentHP;
+            lastLocalResource = currentResource;
+
+            document.getElementById('local-player-name').textContent = `${playerName} (${character.name || 'Unknown'})`;
+            document.getElementById('local-player-hp').style.width = `${(currentHP / localMaxHP) * 100}%`;
+            document.getElementById('local-player-hp-text').textContent = `${currentHP} / ${localMaxHP}`;
+            const localResourceElement = document.getElementById('local-player-resource');
+            localResourceElement.style.width = `${(currentResource / localMaxResource) * 100}%`;
+            localResourceElement.className = `game-scene-resource ${resourceType}`;
+            document.getElementById('local-player-resource-text').textContent = `${currentResource} / ${localMaxResource}`;
+            const localGameAvatar = document.getElementById('local-player-game-avatar');
+            localGameAvatar.src = avatar;
+            localGameAvatar.onerror = () => { localGameAvatar.src = '/static/image/default.png'; };
+
+            const powerbar = document.getElementById('powerbar');
+            powerbar.max = localMaxResource;
+            powerbar.value = Math.min(currentPowerBar, currentResource);
+            updatePowerBarValue();
+
+            const opponent = data.opponent || {};
+            const opponentRoundValues = opponent.round_values || {};
+            opponentMaxHP = opponent.character?.maxHP || 100;
+            opponentMaxResource = opponent.character?.resourceMaxValue || 100;
+            const opponentCurrentHP = Math.floor(opponentRoundValues.currentHP ?? opponentMaxHP);
+            const opponentCurrentResource = Math.floor(opponentRoundValues.currentResource ?? (opponent.character?.resourceBaseValue || 0));
+            const opponentResourceType = (opponent.character?.resourceType || 'Mana').toLowerCase();
+            const opponentAvatar = opponent.character?.avatarImageNoBg || '/static/image/default.png';
+
+            if (lastOpponentHP !== null && lastOpponentHP !== opponentCurrentHP) {
+                const diff = opponentCurrentHP - lastOpponentHP;
+                const opponentAvatar = document.getElementById('opponent-game-avatar');
+                if (opponentAvatar) createFloatingNumber(diff, diff < 0 ? '#ff0000' : '#00ff00', opponentAvatar);
+            }
+            if (lastOpponentResource !== null && lastOpponentResource !== opponentCurrentResource) {
+                const diff = opponentCurrentResource - lastOpponentResource;
+                const opponentAvatar = document.getElementById('opponent-game-avatar');
+                if (opponentAvatar && diff > 0) {
+                    const resourceColors = {
+                        'mana': '#660099',
+                        'rage': '#994d00',
+                        'energy': '#999900',
+                        'focus': '#339966',
+                        'coldblood': '#ffffff'
+                    };
+                    createFloatingNumber(diff, resourceColors[opponentResourceType] || '#660099', opponentAvatar);
+                }
+            }
+            lastOpponentHP = opponentCurrentHP;
+            lastOpponentResource = opponentCurrentResource;
+
+            document.getElementById('opponent-name').textContent = `${opponent.player || 'Unknown'} (${opponent.character?.name || 'Unknown'})`;
+            document.getElementById('opponent-hp').style.width = `${(opponentCurrentHP / opponentMaxHP) * 100}%`;
+            document.getElementById('opponent-hp-text').textContent = `${opponentCurrentHP} / ${opponentMaxHP}`;
+            const opponentResourceElement = document.getElementById('opponent-resource');
+            opponentResourceElement.style.width = `${(opponentCurrentResource / opponentMaxResource) * 100}%`;
+            opponentResourceElement.className = `game-scene-resource ${opponentResourceType}`;
+            document.getElementById('opponent-resource-text').textContent = `${opponentCurrentResource} / ${opponentMaxResource}`;
+            const opponentGameAvatar = document.getElementById('opponent-game-avatar');
+            opponentGameAvatar.src = opponentAvatar;
+            opponentGameAvatar.onerror = () => { opponentGameAvatar.src = '/static/image/default.png'; };
+
+            updateEffects('local-player', isPlayer1 ? data.player1_buffs : data.player2_buffs, isPlayer1 ? data.player1_debuffs : data.player2_debuffs);
+            updateEffects('opponent', isPlayer1 ? data.player2_buffs : data.player1_buffs, isPlayer1 ? data.player2_debuffs : data.player1_debuffs);
+
+            selectedSkills = data.selected_skills || [];
+            const defaultIcons = {
+                "attack": "/static/image/defaultattack.png",
+                "defence": "/static/image/defaultdefence.png",
+                "parry": "/static/image/defaultparry.png",
+                "kick": "/static/image/defaultkick.png",
+                "heal": "/static/image/defaultheal.png"
+            };
+            const actions = ["Attack", "Defence", "Parry", "Kick", "Heal"];
+            actions.forEach(action => {
+                const skill = selectedSkills.find(t => t.base_action === action);
+                const button = document.getElementById(`${action.toLowerCase()}-btn`);
+                if (skill && !isPreparingSuper) {
+                    const skillId = skill.id;
+                    const level = skill.level;
+                    const skillName = skillDescriptions[skillId]?.split('\n')[0] || "Unknown";
+                    const displayName = `${skillName}[${level}]`;
+                    button.innerHTML = `<img id="${action.toLowerCase()}-icon" src="${defaultIcons[action.toLowerCase()]}" alt="${action}" class="action-icon">${action.charAt(0).toUpperCase() + action.slice(1)}`;
+                    button.setAttribute('data-action', action);
+                } else {
+                    button.innerHTML = `<img id="${action.toLowerCase()}-icon" src="${defaultIcons[action.toLowerCase()]}" alt="${action}" class="action-icon">${action.charAt(0).toUpperCase() + action.slice(1)}`;
+                }
+            });
+
+            const opponentTalents = data.opponent?.selected_skills || [];
+            const opponentSuperId = opponentTalents.length > 0 ? opponentTalents[0].id : null;
+            const opponentSuperIcon = document.getElementById('opponent-super-icon');
+            opponentSuperIcon.src = opponentSuperId ? skillImages[opponentSuperId] : '/static/image/default.png';
+            opponentSuperIcon.addEventListener('mouseover', (e) => showTooltip(e, skillDescriptions[opponentSuperId] || "Unknown skill"));
+            opponentSuperIcon.addEventListener('mouseout', hideTooltip);
+
+            const opponentCooldown = data.opponent.round_values?.skill_cooldowns ? Math.max(...Object.values(data.opponent.round_values.skill_cooldowns)) : 0;
+            const cooldownOverlay = document.getElementById('opponent-super-cooldown-overlay');
+            const cooldownText = document.getElementById('opponent-super-cooldown-text');
+            if (opponentCooldown > 0) {
+                cooldownOverlay.style.opacity = '0.7';
+                cooldownText.textContent = opponentCooldown;
+                cooldownText.style.display = 'block';
+            } else {
+                cooldownOverlay.style.opacity = '0';
+                cooldownText.textContent = '';
+                cooldownText.style.display = 'none';
+            }
+
+            if (data.round_start_time) {
+                const duration = 15000;
+                const now = Date.now();
+                const elapsed = now - data.round_start_time;
+                const remaining = Math.max(0, duration - elapsed);
+                const percentage = (remaining / duration) * 100;
+
+                const timerProgress = document.getElementById('timer-progress');
+                timerProgress.style.width = `${percentage}%`;
+                clearInterval(timerInterval);
+
+                timerInterval = setInterval(() => {
+                    const currentElapsed = Date.now() - data.round_start_time;
+                    const currentRemaining = Math.max(0, duration - currentElapsed);
+                    const currentPercentage = (currentRemaining / duration) * 100;
+                    timerProgress.style.width = `${currentPercentage}%`;
+                    if (currentRemaining <= 0) {
+                        clearInterval(timerInterval);
+                    }
+                }, 50);
+            }
+
+            updateActionButtons();
+        }
+
+        function updateEffects(playerPrefix, buffs, debuffs) {
+            const buffContainer = document.getElementById(`${playerPrefix}-buffs`);
+            const debuffContainer = document.getElementById(`${playerPrefix}-debuffs`);
+            buffContainer.innerHTML = '';
+            debuffContainer.innerHTML = '';
+
+            for (const [name, info] of Object.entries(buffs || {})) {
+                const buffElement = document.createElement('div');
+                buffElement.className = 'effect-icon buff';
+                const buffImage = buffImages[name] || '/static/image/default.png';
+                buffElement.innerHTML = `<img src="${buffImage}" alt="${name}">
+                    <span class="stack-counter">${info.stacks || 1}</span>
+                    <span class="duration-counter">${info.duration === Infinity ? '∞' : info.duration}</span>`;
+                const stacks = info.stacks || 1;
+                const dynamicDescription = name === "BloodPactBuff" 
+                    ? `${buffDescriptions[name]}\nCurrent Stacks: ${stacks}` 
+                    : buffDescriptions[name];
+                buffElement.addEventListener('mouseover', (e) => showTooltip(e, dynamicDescription || "Positive effect"));
+                buffElement.addEventListener('mouseout', hideTooltip);
+                buffContainer.appendChild(buffElement);
+            }
+
+            for (const [name, info] of Object.entries(debuffs || {})) {
+                const debuffElement = document.createElement('div');
+                debuffElement.className = 'effect-icon debuff';
+                let imageId = name === "NoctisHealingReductionDebuff" ? 2 : name === "NoctisDamageReductionDebuff" ? 3 : 1;
+                debuffElement.innerHTML = `<img src="${skillImages[imageId]}" alt="${name}">
+                    <span class="stack-counter">${info.stacks || 1}</span>
+                    <span class="duration-counter">${info.duration === Infinity ? '∞' : info.duration}</span>`;
+                debuffElement.addEventListener('mouseover', (e) => showTooltip(e, debuffDescriptions[name] || "Unknown debuff"));
+                debuffElement.addEventListener('mouseout', hideTooltip);
+                debuffContainer.appendChild(debuffElement);
+            }
+        }
+
+        function updateActionButtons() {
+            if (!lastUIData) return;
+
+            const roundValues = lastUIData.round_values || {};
+            const isActionCommitted = lastUIData.action_committed || false;
+            const powerbar = document.getElementById('powerbar');
+            const actions = ["Attack", "Defence", "Parry", "Kick", "Heal"];
+            const skillCooldowns = roundValues.skill_cooldowns || {};
+
+            actions.forEach(action => {
+                const btn = document.getElementById(`${action.toLowerCase()}-btn`);
+                const baseCooldownSpan = document.getElementById(`${action.toLowerCase()}-base-cooldown`);
+                const skillContainer = document.getElementById(`${action.toLowerCase()}-skill`);
+                const skillCooldownSpan = document.getElementById(`${action.toLowerCase()}-skill-cooldown`);
+                const skillIcon = document.getElementById(`${action.toLowerCase()}-skill-icon`);
+                if (!btn || !baseCooldownSpan || !skillContainer || !skillCooldownSpan || !skillIcon) return;
+
+                const blockedTurns = roundValues[`blocked${action}`] || 0;
+                const skill = selectedSkills.find(t => t.base_action === action);
+                const superCooldown = skill ? (skillCooldowns[action] || 0) : 0;
+                const isSuperAction = skill !== undefined;
+
+                // Обновляем базовое действие
+                if (blockedTurns > 0 || isActionCommitted) {
+                    btn.disabled = true;
+                    btn.classList.add('disabled-action');
+                    baseCooldownSpan.textContent = blockedTurns;
+                    baseCooldownSpan.style.display = 'block';
+                } else {
+                    btn.disabled = false;
+                    btn.classList.remove('disabled-action');
+                    baseCooldownSpan.textContent = '';
+                    baseCooldownSpan.style.display = 'none';
+                }
+
+                // Обновляем талант
+                if (isSuperAction) {
+                    skillIcon.src = skillImages[skill.id];
+                    skillIcon.style.display = 'block';
+                    if (superCooldown > 0) {
+                        skillCooldownSpan.textContent = superCooldown;
+                        skillCooldownSpan.style.display = 'block';
+                        skillIcon.classList.add('on-cooldown');
+                    } else {
+                        skillCooldownSpan.textContent = '';
+                        skillCooldownSpan.style.display = 'none';
+                        skillIcon.classList.remove('on-cooldown');
+                    }
+                } else {
+                    skillIcon.style.display = 'none';
+                    skillCooldownSpan.textContent = '';
+                    skillCooldownSpan.style.display = 'none';
+                }
+
+                if (isActionCommitted && lastUIData.action === action && !btn.classList.contains('selected')) {
+                    btn.classList.add('selected');
+                    lastSelectedButton = btn;
+                }
+            });
+
+            powerbar.disabled = isActionCommitted;
+        }
+
+        function showTooltip(event, text) {
+            const tooltip = document.getElementById('tooltip');
+            tooltip.textContent = text;
+            tooltip.style.display = 'block';
+            tooltip.style.left = `${event.pageX + 5}px`;
+            tooltip.style.top = `${event.pageY - tooltip.offsetHeight - 5}px`;
+        }
+
+        function hideTooltip() {
+            document.getElementById('tooltip').style.display = 'none';
+        }
+
+        function createFloatingNumber(value, color, avatarElement) {
+            const number = document.createElement('div');
+            number.textContent = value > 0 ? `+${value}` : `${value}`;
+            number.className = 'floating-number';
+            number.style.color = color;
+
+            const gameField = document.getElementById('game-field');
+            const avatarRect = avatarElement.getBoundingClientRect();
+            const gameFieldRect = gameField.getBoundingClientRect();
+
+            const left = avatarRect.left - gameFieldRect.left + (avatarElement.offsetWidth / 2);
+            const top = avatarRect.top - gameFieldRect.top - 20;
+
+            number.style.position = 'absolute';
+            number.style.left = `${left}px`;
+            number.style.top = `${top}px`;
+            number.style.fontFamily = 'CustomFont, sans-serif';
+            number.style.fontSize = '20px';
+            number.style.textShadow = '1px 1px 2px #000';
+            number.style.zIndex = '100';
+
+            gameField.appendChild(number);
+
+            number.animate([
+                { transform: 'translateY(0)', opacity: 1 },
+                { transform: 'translateY(-40px)', opacity: 0 }
+            ], {
+                duration: 2500,
+                easing: 'ease-out',
+                fill: 'forwards'
+            });
+
+            setTimeout(() => number.remove(), 1500);
+        }
+    </script>
+{% endblock %}

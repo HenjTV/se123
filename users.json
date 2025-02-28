@@ -1,0 +1,10 @@
+{
+    "henj": {
+        "password_hash": "$2b$12$G4SqzUcM5SuN/rR4STKM6eia8eYXs/B.H5biPleDOl2lcOboGFrP6",
+        "rating": 1825
+    },
+    "kaban": {
+        "password_hash": "$2b$12$g12kn.jMmcyvfu2zofRgjOEyRpMWrRqwOBGM9Ekx8XNDpQkmKJ7o6",
+        "rating": 1000
+    }
+}
